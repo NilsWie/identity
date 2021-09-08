@@ -5,6 +5,7 @@ using Codeworx.Identity.EntityFrameworkCore.Model;
 using Codeworx.Identity.Login;
 using Codeworx.Identity.Login.OAuth;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 
@@ -14,7 +15,7 @@ namespace Codeworx.Identity.EntityFrameworkCore
     {
         private static Guid _invitationUserId = Guid.Parse("{6554B541-8601-4258-8D11-661CA55C7277}");
 
-        public static IServiceProvider MigrateDatabase(this IServiceProvider serviceProvider)
+        public static IServiceProvider MigrateDatabase(this IServiceProvider serviceProvider, IConfiguration configuration)
         {
             using (var scope = serviceProvider.CreateScope())
             {
@@ -240,14 +241,6 @@ namespace Codeworx.Identity.EntityFrameworkCore
                             EndpointType = new WindowsLoginProcessorLookup().Key,
                             EndpointConfiguration = null,
                             SortOrder = 2,
-                            RightHolders =
-                            {
-                                new AuthenticationProviderRightHolder
-                                {
-                                    RightHolderId = Guid.Parse(Constants.MultiTenantUserId),
-                                    ExternalIdentifier = "S-1-12-1-3570142310-1302179307-1636533923-2810485112",
-                                },
-                            },
                         });
                     }
 
@@ -263,28 +256,16 @@ namespace Codeworx.Identity.EntityFrameworkCore
                             EndpointType = new ExternalOAuthLoginProcessorLookup().Key,
                             EndpointConfiguration = JsonConvert.SerializeObject(new OAuthLoginConfiguration
                             {
-                                BaseUri = new Uri("https://login.microsoftonline.com/51088e07-f352-4a0f-b11e-4be93b83c484/oauth2/v2.0/"),
+                                BaseUri = new Uri($"https://login.microsoftonline.com/{configuration.GetValue<string>("TestSetup:ExternalTenantId")}/oauth2/v2.0/"),
                                 AuthorizationEndpoint = "authorize",
                                 TokenEndpoint = "token",
-                                Scope = "openid 6c2cf5a9-ff71-4049-8035-4958df58b3bc/.default offline_access",
+                                CssClass = "icon-microsoft",
+                                Scope = configuration.GetValue<string>("TestSetup:ExternalScopes"),
                                 TokenHandling = ExternalTokenHandling.Refresh,
                                 IdentifierClaim = "oid",
-                                ClientId = "6c2cf5a9-ff71-4049-8035-4958df58b3bc",
-                                ClientSecret = "~zN83~W-wzInR_zkuKKPPHlc~6rF2OfL5t",
-                            }),
-                            RightHolders =
-                            {
-                                new AuthenticationProviderRightHolder
-                                {
-                                    RightHolderId = Guid.Parse(Constants.DefaultAdminUserId),
-                                    ExternalIdentifier = "d4cc0c66-adeb-4d9d-a386-8b61789984a7",
-                                },
-                                new AuthenticationProviderRightHolder
-                                {
-                                    RightHolderId = Guid.Parse(Constants.MultiTenantUserId),
-                                    ExternalIdentifier = Constants.MultiTenantUserId,
-                                },
-                            },
+                                ClientId = configuration.GetValue<string>("TestSetup:ExternalClientId"),
+                                ClientSecret = configuration.GetValue<string>("TestSetup:ExternalClientSecret"),
+                            })
                         });
                     }
 
